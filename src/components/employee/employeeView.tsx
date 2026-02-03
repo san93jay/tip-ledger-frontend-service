@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface LedgerEntry {
   id: string;
@@ -7,7 +8,7 @@ interface LedgerEntry {
   createdAt: string;
   tipIntentId: string;
   tableCode?: string;
-  name?: string; // employee name, may be null
+  name?: string;
 }
 
 interface EmployeeTipsResponse {
@@ -18,69 +19,101 @@ interface EmployeeTipsResponse {
 }
 
 export const EmployeeTipsView: React.FC<{ employeeId: string }> = ({ employeeId }) => {
-  const [data, setData] = useState<{ total: number; entries: LedgerEntry[] }>({ total: 0, entries: [] });
-  const token = localStorage.getItem('token');
+  const [data, setData] = useState<EmployeeTipsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
-useEffect(() => {
-  const fetchTips = async () => {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/employees/${employeeId}/tips`, {
-        headers: {
-          'Content-Type': 'application/json',
-           Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const msg =
-          typeof errorData.message === 'string'
-            ? errorData.message
-            : errorData.message?.message || 'Failed to fetch tips';
-        throw new Error(msg);
-      }
-
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      console.error('Error fetching tips:', err);
-      setError((err as Error).message);
-      setData({ total: 0, entries: [] });
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login"); // automatically goes to localhost:3001/login
   };
 
-  fetchTips();
-}, [employeeId, token]);
+  useEffect(() => {
+    const fetchTips = async () => {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/employees/${employeeId}/tips`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          const msg =
+            typeof errorData.message === "string"
+              ? errorData.message
+              : errorData.message?.message || "Failed to fetch tips";
+          throw new Error(msg);
+        }
+
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error("Error fetching tips:", err);
+        setError((err as Error).message);
+        setData(null);
+      }
+    };
+
+    if (employeeId && token) fetchTips();
+  }, [employeeId, token]);
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Employee Tips</h2>
-      <p className="mb-6 text-lg">
-        <strong>Total:</strong> {data.total} fils
-      </p>
+    <div className="employee-page">
+       <header className="header">
+        <h1 className="page-title">Employee Dashboard</h1>
+        <button className="logout-button" onClick={handleLogout}>
+          Logout
+        </button>
+      </header>
 
-      {data.entries.length === 0 ? (
-        <p className="text-gray-500">No tips recorded yet.</p>
+      {error && <p className="error">Error: {error}</p>}
+
+      {data ? (
+        <>
+          {/* Summary */}
+          <section className="section">
+            <h2 className="section-title">Tips Summary</h2>
+            <p className="summary-total">
+              <strong>Total:</strong> {data.total} fils
+            </p>
+          </section>
+
+          {/* Entries */}
+          <section className="section">
+            <h2 className="section-title">Tip Entries</h2>
+            {data.entries.length === 0 ? (
+              <p className="empty">No tips recorded yet.</p>
+            ) : (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount (fils)</th>
+                    <th>Type</th>
+                    <th>Table</th>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.entries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{new Date(entry.createdAt).toLocaleString()}</td>
+                      <td>{entry.amountFils}</td>
+                      <td>{entry.type}</td>
+                      <td>{entry.tableCode ?? "N/A"}</td>
+                      <td>{entry.name ?? "N/A"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
       ) : (
-        <ul className="space-y-4">
-        {data.entries.map(entry => (
-              <li key={entry.id} className="border rounded-lg p-4 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Name: {entry.name ?? 'N/A'}</span>
-                </div>
-                <div>
-                   <span className="text-sm text-gray-500"> Date: 
-                    {new Date(entry.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <div className="text-lg font-medium">Amount: {entry.amountFils} fils</div>
-                <div className="text-sm">Type: {entry.type}</div>
-                {/* <div className="text-sm">TipIntent ID: {entry.tipIntentId}</div> */}
-                <div className="text-sm text-gray-600">Table: {entry.tableCode ?? 'N/A'}</div>
-              </li>
-         ))}
-        </ul>
+        <p className="empty">Loading tips...</p>
       )}
     </div>
   );

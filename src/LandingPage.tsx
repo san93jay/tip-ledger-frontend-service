@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = "login" | "signup";
 
 const LandingPage: React.FC = () => {
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -14,64 +16,94 @@ const LandingPage: React.FC = () => {
 
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/${mode}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-    if (!res.ok) {
-        const errorData = await res.json();
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
         const msg =
-            typeof errorData.message === 'string'
+          typeof errorData.message === "string"
             ? errorData.message
-            : errorData.message?.message || 'Auth failed';
+            : errorData.message?.message || "Auth failed";
         throw new Error(msg);
-    }
+      }
 
-    const { access_token, role, merchantId, employeeId } = await res.json();
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('role', role);
+      const json = await res.json();
 
-        if (role === 'merchant') {
-        localStorage.setItem('merchantId', merchantId);
+      if (mode === "signup") {
+        // ✅ Show inline success message
+        setSuccessMessage("Signup successful! Redirecting to login...");
+        setErrorMessage(null);
+
+        // ✅ Switch form back to login mode after short delay
+        setTimeout(() => {
+          setMode("login");
+          setSuccessMessage(null);
+        }, 1500);
+
+        return;
+      }
+
+      // ✅ Login flow
+      const { access_token, role, merchantId, employeeId } = json;
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("role", role);
+
+      if (role === "merchant") {
+        localStorage.setItem("merchantId", merchantId);
         navigate(`/merchants/${merchantId}/tips/summary`);
-        } else if (role === 'employee') {
-        localStorage.setItem('employeeId', employeeId);
+      } else if (role === "employee") {
+        localStorage.setItem("employeeId", employeeId);
         navigate(`/employees/${employeeId}/tips`);
-        }
+      }
     } catch (err) {
-      console.error(err);
-       alert((err as Error).message);
+      setErrorMessage((err as Error).message);
+      setSuccessMessage(null);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          {mode === 'login' ? 'Welcome To ECom Payments' : 'Create Your Account'}
-        </h1>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {mode === 'signup' && (
-            <input name="name" type="text" placeholder="Full Name" className="w-full border rounded px-3 py-2" />
+    <div className="page">
+      <div className="card">
+        <h1>{mode === "login" ? "Welcome To ECom Payments" : "Create Your Account"}</h1>
+
+        <form onSubmit={handleSubmit}>
+          {mode === "signup" && (
+            <input name="name" type="text" placeholder="Full Name" className="input" />
           )}
-          <input name="email" type="email" placeholder="Email" className="w-full border rounded px-3 py-2" />
-          <input name="password" type="password" placeholder="Password" className="w-full border rounded px-3 py-2" />
-          {mode === 'signup' && (
-            <select name="role" className="w-full border rounded px-3 py-2">
-              <option value="employee">Employee</option>
+          <input name="email" type="email" placeholder="Email" className="input" />
+          <input name="password" type="password" placeholder="Password" className="input" />
+          {mode === "signup" && (
+            <select name="role" className="input">
               <option value="merchant">Merchant</option>
             </select>
           )}
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded">
-            {mode === 'login' ? 'Login' : 'Sign Up'}
+          <button type="submit" className="button">
+            {mode === "login" ? "Login" : "Sign Up"}
           </button>
         </form>
-        <p className="text-sm text-center mt-2">
-          {mode === 'login' ? (
-            <>Don’t have an account? <button type="button" onClick={() => setMode('signup')} className="text-blue-600 underline">Sign up</button></>
+
+        {/* ✅ Inline messages */}
+        {successMessage && <p className="success">{successMessage}</p>}
+        {errorMessage && <p className="error">{errorMessage}</p>}
+
+        <p className="toggle">
+          {mode === "login" ? (
+            <>
+              Don’t have an account?{" "}
+              <button type="button" onClick={() => setMode("signup")} className="link">
+                Sign up
+              </button>
+            </>
           ) : (
-            <>Already have an account? <button type="button" onClick={() => setMode('login')} className="text-blue-600 underline">Login</button></>
+            <>
+              Already have an account?{" "}
+              <button type="button" onClick={() => setMode("login")} className="link">
+                Login
+              </button>
+            </>
           )}
         </p>
       </div>
