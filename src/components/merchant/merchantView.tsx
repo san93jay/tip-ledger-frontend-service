@@ -54,7 +54,7 @@ export const MerchantDashboard: React.FC<{ merchantId: string }> = ({ merchantId
       ]);
 
       if (!summaryRes.ok || !empRes.ok || !tableRes.ok) {
-        throw new Error("Backend error fetching merchant data");
+        throw new Error("Something went wrong to fetching merchant data");
       }
 
       const summaryJson = await summaryRes.json();

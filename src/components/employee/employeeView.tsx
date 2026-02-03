@@ -26,7 +26,7 @@ export const EmployeeTipsView: React.FC<{ employeeId: string }> = ({ employeeId 
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/login"); // automatically goes to localhost:3001/login
+    navigate("/login");
   };
 
   useEffect(() => {

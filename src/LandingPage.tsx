@@ -33,11 +33,11 @@ const LandingPage: React.FC = () => {
       const json = await res.json();
 
       if (mode === "signup") {
-        // ✅ Show inline success message
+        //Show inline success message
         setSuccessMessage("Signup successful! Redirecting to login...");
         setErrorMessage(null);
 
-        // ✅ Switch form back to login mode after short delay
+        //Switch form back to login mode after short delay
         setTimeout(() => {
           setMode("login");
           setSuccessMessage(null);
@@ -46,7 +46,7 @@ const LandingPage: React.FC = () => {
         return;
       }
 
-      // ✅ Login flow
+      // Login flow
       const { access_token, role, merchantId, employeeId } = json;
       localStorage.setItem("token", access_token);
       localStorage.setItem("role", role);
@@ -67,7 +67,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="page">
       <div className="card">
-        <h1>{mode === "login" ? "Welcome To ECom Payments" : "Create Your Account"}</h1>
+        <h1>{mode === "login" ? "Welcome To Ecom payments" : "Create Your Account"}</h1>
 
         <form onSubmit={handleSubmit}>
           {mode === "signup" && (
@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
           </button>
         </form>
 
-        {/* ✅ Inline messages */}
+        {/*Inline messages */}
         {successMessage && <p className="success">{successMessage}</p>}
         {errorMessage && <p className="error">{errorMessage}</p>}
 
